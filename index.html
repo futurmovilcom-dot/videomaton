@@ -565,69 +565,11 @@ function stopRecording() {
 }
 
 // ── PROCESADO ───────────────────────────────────────────────
+// Subimos el vídeo original sin procesar — el boomerang se hace
+// visualmente en la página de preview del cliente (sin pérdida de calidad)
 async function processVideo() {
-  const rawBlob = new Blob(recordedChunks, { type: 'video/webm' });
-  if (cfg.mode === 'normal') { finalBlob = rawBlob; showPreview(); return; }
-  document.getElementById('procTitle').textContent =
-    cfg.mode === 'boomerang' ? 'Creando boomerang...' : 'Invirtiendo vídeo...';
-  try { finalBlob = await processFrames(rawBlob); }
-  catch(e) { console.warn(e); finalBlob = rawBlob; }
+  finalBlob = new Blob(recordedChunks, { type: 'video/webm' });
   showPreview();
-}
-
-async function processFrames(blob) {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(blob);
-    const vid = document.createElement('video');
-    vid.src = url; vid.muted = true; vid.preload = 'auto';
-    vid.onloadedmetadata = async () => {
-      // Resolución reducida y pocos frames para no colapsar el móvil
-      const MAX_W = 480;
-      const srcW = vid.videoWidth || 640, srcH = vid.videoHeight || 480;
-      const scale = Math.min(1, MAX_W / srcW);
-      const W = Math.floor(srcW * scale), H = Math.floor(srcH * scale);
-      const fps = 10;
-      const MAX_FRAMES = 40;
-      const total = Math.min(MAX_FRAMES, Math.floor(vid.duration * fps));
-      document.getElementById('procSub').textContent = `Capturando ${total} frames...`;
-      const canvas = document.createElement('canvas');
-      canvas.width = W; canvas.height = H;
-      const ctx = canvas.getContext('2d');
-      const frames = []; let f = 0;
-      const captureNext = () => {
-        if (f >= total) {
-          document.getElementById('procSub').textContent = 'Montando vídeo...';
-          buildOutput(frames, canvas, ctx, resolve);
-          return;
-        }
-        document.getElementById('procSub').textContent = `Frame ${f + 1} de ${total}...`;
-        vid.currentTime = f / fps; f++;
-      };
-      vid.onseeked = () => {
-        ctx.drawImage(vid, 0, 0, W, H);
-        frames.push(ctx.getImageData(0, 0, W, H));
-        captureNext();
-      };
-      captureNext();
-    };
-    vid.onerror = reject; vid.load();
-  });
-}
-
-function buildOutput(frames, canvas, ctx, resolve) {
-  const seq = cfg.mode === 'boomerang'
-    ? [...frames, ...[...frames].reverse()]
-    : [...frames].reverse();
-  const stream = canvas.captureStream(24);
-  const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
-  const mr = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 4000000 });
-  const chunks = [];
-  mr.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-  mr.onstop = () => resolve(new Blob(chunks, { type: 'video/webm' }));
-  mr.start();
-  let i = 0;
-  const draw = () => { if (i >= seq.length) { mr.stop(); return; } ctx.putImageData(seq[i++], 0, 0); requestAnimationFrame(draw); };
-  draw();
 }
 
 function showPreview() {
@@ -664,6 +606,7 @@ async function uploadToDrive() {
       filename,
       eventName: currentEvent.name,
       mimeType: 'video/webm',
+      mode: cfg.mode,
     });
     if (!res.ok) throw new Error(res.error);
     status.textContent = `✅ Subido · ${res.sizeMb} MB`;

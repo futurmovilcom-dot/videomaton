@@ -582,17 +582,33 @@ async function processFrames(blob) {
     const vid = document.createElement('video');
     vid.src = url; vid.muted = true; vid.preload = 'auto';
     vid.onloadedmetadata = async () => {
-      const W = vid.videoWidth || 640, H = vid.videoHeight || 480;
-      const fps = 24, total = Math.floor(vid.duration * fps);
+      // Resolución reducida y pocos frames para no colapsar el móvil
+      const MAX_W = 480;
+      const srcW = vid.videoWidth || 640, srcH = vid.videoHeight || 480;
+      const scale = Math.min(1, MAX_W / srcW);
+      const W = Math.floor(srcW * scale), H = Math.floor(srcH * scale);
+      const fps = 10;
+      const MAX_FRAMES = 40;
+      const total = Math.min(MAX_FRAMES, Math.floor(vid.duration * fps));
+      document.getElementById('procSub').textContent = `Capturando ${total} frames...`;
       const canvas = document.createElement('canvas');
       canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext('2d');
       const frames = []; let f = 0;
       const captureNext = () => {
-        if (f >= total) { buildOutput(frames, canvas, ctx, resolve); return; }
+        if (f >= total) {
+          document.getElementById('procSub').textContent = 'Montando vídeo...';
+          buildOutput(frames, canvas, ctx, resolve);
+          return;
+        }
+        document.getElementById('procSub').textContent = `Frame ${f + 1} de ${total}...`;
         vid.currentTime = f / fps; f++;
       };
-      vid.onseeked = () => { ctx.drawImage(vid, 0, 0, W, H); frames.push(ctx.getImageData(0,0,W,H)); captureNext(); };
+      vid.onseeked = () => {
+        ctx.drawImage(vid, 0, 0, W, H);
+        frames.push(ctx.getImageData(0, 0, W, H));
+        captureNext();
+      };
       captureNext();
     };
     vid.onerror = reject; vid.load();

@@ -554,7 +554,8 @@ function showQR(url){
 
 function openGallery(){
   if(!cfg.scriptUrl||!currentEvent) return;
-  window.open(cfg.scriptUrl+'?page=gallery&event='+encodeURIComponent(currentEvent.name),'_blank');
+  const githubUrl = encodeURIComponent(window.location.href.split('?')[0]);
+  window.open(cfg.scriptUrl+'?page=gallery&event='+encodeURIComponent(currentEvent.name)+'&origin='+githubUrl,'_blank');
 }
 function goHome(){ stopBoomerang(); showScreen('home'); }
 

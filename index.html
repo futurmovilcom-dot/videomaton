@@ -4,179 +4,246 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0a0a0a">
 <title>Videomatón</title>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap');
-*{box-sizing:border-box;margin:0;padding:0}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
   --bg:#0a0a0a;--surface:#161616;--surface2:#1e1e1e;
   --accent:#ff3b3b;--green:#22c55e;--text:#f0f0f0;--muted:#888;--border:#2a2a2a;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
 }
-body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--text);
-  height:100dvh;display:flex;flex-direction:column;overflow:hidden;position:fixed;width:100%}
-.screen{display:none;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;padding:1.5rem}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:'Space Grotesk',sans-serif;color:var(--text);
+  display:flex;flex-direction:column;position:fixed;inset:0}
+
+/* ── SCREENS ─────────────────────────────── */
+.screen{display:none;flex-direction:column;align-items:center;justify-content:center;
+  width:100%;height:100%;
+  padding:calc(1.5rem + var(--safe-top)) 1.5rem calc(1.5rem + var(--safe-bot))}
 .screen.active{display:flex}
 
-/* HOME */
-#home{gap:1.8rem}
-.logo{font-size:2rem;font-weight:700;letter-spacing:-0.03em;text-align:center}
+/* ── TOAST ───────────────────────────────── */
+#toast{position:fixed;bottom:calc(2rem + var(--safe-bot));left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:.75rem 1.25rem;font-size:.88rem;font-weight:500;color:var(--text);
+  white-space:nowrap;z-index:9999;opacity:0;transition:opacity .25s, transform .25s;pointer-events:none;
+  box-shadow:0 8px 32px rgba(0,0,0,.5)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.error{border-color:rgba(255,59,59,.4);background:#1a0a0a;color:#ff6b6b}
+#toast.success{border-color:rgba(34,197,94,.4);background:#0a1a0a;color:#4ade80}
+
+/* ── CUSTOM MODAL ────────────────────────── */
+#customModal{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;
+  display:none;align-items:flex-end;justify-content:center;
+  padding-bottom:calc(1rem + var(--safe-bot));backdrop-filter:blur(4px)}
+#customModal.open{display:flex}
+.cm-box{background:var(--surface);border:1px solid var(--border);border-radius:24px 24px 16px 16px;
+  width:100%;max-width:420px;padding:1.5rem;display:flex;flex-direction:column;gap:1rem;
+  animation:slideUp .25s cubic-bezier(.175,.885,.32,1.275)}
+@keyframes slideUp{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
+.cm-icon{font-size:2rem;text-align:center}
+.cm-title{font-size:1.05rem;font-weight:700;text-align:center}
+.cm-msg{font-size:.85rem;color:var(--muted);text-align:center;line-height:1.5}
+.cm-btns{display:flex;gap:.75rem;margin-top:.25rem}
+.cm-btn{flex:1;padding:.85rem;border-radius:14px;border:none;font-family:inherit;
+  font-size:.9rem;font-weight:700;cursor:pointer}
+.cm-btn-ok{background:var(--accent);color:#fff}
+.cm-btn-cancel{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+
+/* ── HOME ────────────────────────────────── */
+#home{gap:1.6rem;position:relative}
+.logo{font-size:2rem;font-weight:700;letter-spacing:-0.03em;text-align:center;line-height:1}
 .logo span{color:var(--accent)}
-.logo-sub{font-size:.8rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;text-align:center}
-.event-pill{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);
-  border-radius:999px;padding:.45rem 1rem;cursor:pointer;font-size:.85rem;max-width:90vw}
+.logo-sub{font-size:.75rem;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;text-align:center}
+.event-pill{display:flex;align-items:center;gap:8px;background:var(--surface2);
+  border:1px solid var(--border);border-radius:999px;padding:.5rem 1.1rem;
+  cursor:pointer;font-size:.85rem;max-width:85vw;transition:background .15s}
+.event-pill:active{background:var(--surface)}
 .event-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0}
-.event-name{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
-.event-change{color:var(--muted);font-size:.75rem;flex-shrink:0}
-.big-btn{width:170px;height:170px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;position:relative;
-  box-shadow:0 0 60px rgba(255,59,59,.3);transition:transform .1s}
+.event-name{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55vw}
+.event-change{color:var(--muted);font-size:.72rem;flex-shrink:0}
+.big-btn{width:clamp(140px,42vw,180px);height:clamp(140px,42vw,180px);border-radius:50%;
+  background:var(--accent);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;
+  position:relative;box-shadow:0 0 60px rgba(255,59,59,.3);transition:transform .1s}
 .big-btn::before{content:'';position:absolute;inset:-8px;border-radius:50%;
   border:2px solid rgba(255,59,59,.3);animation:pulse 2s infinite}
 .big-btn::after{content:'';position:absolute;inset:-18px;border-radius:50%;
   border:1px solid rgba(255,59,59,.15);animation:pulse 2s .4s infinite}
 @keyframes pulse{0%{transform:scale(1);opacity:1}100%{transform:scale(1.15);opacity:0}}
-.big-btn:active{transform:scale(.95)}
-.big-btn:disabled{opacity:.4;cursor:not-allowed}
-.btn-icon{font-size:2.4rem}
-.btn-label{font-size:.85rem;font-weight:700;letter-spacing:.06em;color:#fff;text-transform:uppercase}
-.top-actions{position:absolute;top:1rem;right:1rem}
+.big-btn:active{transform:scale(.94)}
+.big-btn:disabled{opacity:.35;cursor:not-allowed}
+.big-btn:disabled::before,.big-btn:disabled::after{display:none}
+.btn-icon{font-size:clamp(1.8rem,6vw,2.4rem)}
+.btn-label{font-size:.82rem;font-weight:700;letter-spacing:.06em;color:#fff;text-transform:uppercase}
+.top-actions{position:absolute;top:0;right:0}
 .icon-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);
   border-radius:50%;width:44px;height:44px;cursor:pointer;font-size:1.1rem;
   display:flex;align-items:center;justify-content:center}
 .mode-badge{display:flex;gap:.4rem;align-items:center;background:var(--surface2);
   border:1px solid var(--border);padding:.4rem .9rem;border-radius:999px;font-size:.78rem;color:var(--muted)}
 .mode-dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.gallery-home-btn{background:transparent;border:1px solid var(--border);color:var(--muted);
+  border-radius:999px;padding:.45rem 1.2rem;font-family:inherit;font-size:.82rem;
+  font-weight:500;cursor:pointer;transition:background .15s}
+.gallery-home-btn:active{background:var(--surface2)}
 
-/* EVENTO MODAL */
-#eventModal{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;
-  display:none;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem}
+/* ── EVENTO MODAL ────────────────────────── */
+#eventModal{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:100;
+  display:none;flex-direction:column;align-items:center;justify-content:flex-end;
+  padding:0 1rem calc(1rem + var(--safe-bot));backdrop-filter:blur(4px)}
 #eventModal.open{display:flex}
-.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;
-  width:100%;max-width:400px;padding:1.5rem;display:flex;flex-direction:column;gap:1rem}
-.modal-title{font-size:1.1rem;font-weight:700}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:24px 24px 16px 16px;
+  width:100%;max-width:480px;padding:1.5rem;display:flex;flex-direction:column;gap:1rem;
+  animation:slideUp .25s cubic-bezier(.175,.885,.32,1.275)}
+.modal-title{font-size:1rem;font-weight:700}
 .modal-input{background:var(--surface2);border:1px solid var(--border);color:var(--text);
-  border-radius:10px;padding:.7rem 1rem;font-family:inherit;font-size:.95rem;width:100%;outline:none}
+  border-radius:12px;padding:.75rem 1rem;font-family:inherit;font-size:.95rem;width:100%;outline:none}
 .modal-input:focus{border-color:var(--accent)}
 .modal-row{display:flex;gap:.75rem}
-.modal-btn{flex:1;padding:.75rem;border-radius:10px;border:none;font-family:inherit;
-  font-size:.9rem;font-weight:700;cursor:pointer}
+.modal-btn{flex:1;padding:.8rem;border-radius:12px;border:none;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer}
 .btn-cancel{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
 .btn-confirm{background:var(--accent);color:#fff}
-.events-list{display:flex;flex-direction:column;gap:.5rem;max-height:180px;overflow-y:auto}
+.events-list{display:flex;flex-direction:column;gap:.5rem;max-height:200px;overflow-y:auto}
 .evt-item{display:flex;align-items:center;justify-content:space-between;
-  background:var(--surface2);border:1px solid var(--border);border-radius:10px;
-  padding:.6rem 1rem;cursor:pointer;font-size:.9rem}
+  background:var(--surface2);border:1px solid var(--border);border-radius:12px;
+  padding:.65rem 1rem;cursor:pointer;font-size:.88rem;transition:border-color .15s}
+.evt-item:active{border-color:var(--accent)}
 .evt-item-name{font-weight:500}
-.evt-item-count{color:var(--muted);font-size:.75rem}
+.evt-item-count{color:var(--muted);font-size:.72rem}
 
-/* COUNTDOWN */
-#countdown{position:relative}
-.count-num{font-size:clamp(140px,38vw,230px);font-weight:700;line-height:1;
+/* ── COUNTDOWN ───────────────────────────── */
+#countdown{position:relative;background:var(--bg)}
+.count-num{font-size:clamp(120px,35vw,220px);font-weight:700;line-height:1;
   animation:pop .4s cubic-bezier(.175,.885,.32,1.275)}
 .count-num.go{color:var(--accent)}
-@keyframes pop{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
-.count-hint{position:absolute;bottom:3rem;font-size:.85rem;color:var(--muted);text-align:center;padding:0 2rem}
+@keyframes pop{0%{transform:scale(.3);opacity:0}100%{transform:scale(1);opacity:1}}
+.count-hint{position:absolute;bottom:calc(2.5rem + var(--safe-bot));font-size:.85rem;
+  color:var(--muted);text-align:center;padding:0 2rem;line-height:1.6}
 .count-hint strong{color:#ff8c00}
 .flash-overlay{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
 
-/* RECORDING */
+/* ── RECORDING ───────────────────────────── */
 #recording{background:#000;padding:0;position:relative}
-#videoPreview{width:100%;height:100%;object-fit:cover}
-.rec-hud{position:absolute;top:0;left:0;right:0;padding:1rem 1.5rem;
-  display:flex;align-items:center;justify-content:space-between;
-  background:linear-gradient(to bottom,rgba(0,0,0,.7),transparent)}
-.rec-badge{display:flex;align-items:center;gap:8px;background:rgba(255,59,59,.9);
-  color:#fff;padding:5px 12px;border-radius:999px;font-size:.72rem;font-weight:700}
+#videoPreview{width:100%;height:100%;object-fit:cover;display:block}
+.rec-hud{position:absolute;top:calc(.75rem + var(--safe-top));left:0;right:0;
+  padding:0 1.25rem;display:flex;align-items:center;justify-content:space-between}
+.rec-badge{display:flex;align-items:center;gap:7px;background:rgba(255,59,59,.92);
+  color:#fff;padding:6px 14px;border-radius:999px;font-size:.72rem;font-weight:700;letter-spacing:.08em}
 .rec-dot{width:7px;height:7px;border-radius:50%;background:#fff;animation:blink 1s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
-.rec-timer{font-size:1.35rem;font-weight:700;font-variant-numeric:tabular-nums}
-.rec-bar-wrap{position:absolute;bottom:0;left:0;right:0;height:4px;background:rgba(255,255,255,.15)}
-.rec-bar{height:100%;background:var(--accent);transition:width .1s linear;width:0%}
+.rec-timer{font-size:1.3rem;font-weight:700;font-variant-numeric:tabular-nums;
+  background:rgba(0,0,0,.5);padding:4px 10px;border-radius:10px}
+.rec-bar-wrap{position:absolute;bottom:0;left:0;right:0;height:4px;background:rgba(255,255,255,.12)}
+.rec-bar{height:100%;background:var(--accent);transition:width .08s linear;width:0%}
 
-/* PROCESSING */
-#processing{gap:1.5rem}
+/* ── PROCESSING ──────────────────────────── */
+#processing{gap:1.2rem;background:var(--bg)}
 .spinner{width:52px;height:52px;border:3px solid var(--border);border-top-color:var(--accent);
   border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.proc-title{font-size:1.15rem;font-weight:700}
-.proc-sub{font-size:.85rem;color:var(--muted)}
+.proc-title{font-size:1.1rem;font-weight:700}
+.proc-sub{font-size:.82rem;color:var(--muted)}
 
-/* PREVIEW */
+/* ── PREVIEW ─────────────────────────────── */
 #preview{background:#000;padding:0;position:relative}
-#previewVideo{width:100%;height:100%;object-fit:cover}
-.preview-top{position:absolute;top:0;left:0;right:0;padding:1rem 1.5rem;
-  background:linear-gradient(to bottom,rgba(0,0,0,.7),transparent);display:flex;justify-content:center}
-.preview-badge{background:rgba(0,0,0,.6);color:#fff;padding:5px 16px;border-radius:999px;
-  font-size:.8rem;font-weight:500;border:1px solid rgba(255,255,255,.15)}
-.preview-bottom{position:absolute;bottom:0;left:0;right:0;padding:1.5rem;
-  background:linear-gradient(to top,rgba(0,0,0,.9),transparent);display:flex;flex-direction:column;gap:.75rem}
+#previewVideo{width:100%;height:100%;object-fit:cover;display:block}
+.preview-top{position:absolute;top:calc(.75rem + var(--safe-top));left:0;right:0;
+  padding:0 1.25rem;display:flex;justify-content:center}
+.preview-badge{background:rgba(0,0,0,.65);color:#fff;padding:6px 16px;border-radius:999px;
+  font-size:.8rem;font-weight:500;border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(6px)}
+.preview-bottom{position:absolute;bottom:0;left:0;right:0;
+  padding:1.25rem 1.25rem calc(1.25rem + var(--safe-bot));
+  background:linear-gradient(to top,rgba(0,0,0,.92) 60%,transparent);
+  display:flex;flex-direction:column;gap:.75rem}
 .act-row{display:flex;gap:.75rem}
-.act-btn{flex:1;padding:.85rem;border:none;border-radius:12px;font-family:inherit;
-  font-size:.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
-.act-btn:active{transform:scale(.97)}
-.btn-repeat{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.act-btn{flex:1;padding:.9rem;border:none;border-radius:14px;font-family:inherit;
+  font-size:.88rem;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:7px;transition:transform .1s}
+.act-btn:active{transform:scale(.96)}
+.btn-repeat{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(6px)}
 .btn-upload{background:var(--accent);color:#fff}
-.btn-upload:disabled{opacity:.5}
-.upload-status{background:rgba(0,0,0,.5);border-radius:10px;padding:.6rem 1rem;
-  font-size:.8rem;color:var(--muted);text-align:center;border:1px solid var(--border)}
+.btn-upload:disabled{opacity:.45}
+.upload-status{font-size:.8rem;color:var(--muted);text-align:center;padding:.5rem}
 
-/* QR */
-#qrScreen{gap:1.2rem}
-.qr-title{font-size:1.3rem;font-weight:700;text-align:center}
-.qr-sub{font-size:.85rem;color:var(--muted);text-align:center}
-.qr-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;
-  padding:1.2rem;display:flex;flex-direction:column;align-items:center;gap:.75rem}
-#qrCanvas{border-radius:8px}
-.qr-url{font-size:.65rem;color:var(--muted);word-break:break-all;text-align:center;
-  max-width:260px;background:var(--surface2);padding:.4rem .75rem;border-radius:8px}
-.qr-actions{display:flex;gap:.75rem;width:100%;max-width:320px}
-.qr-btn{flex:1;padding:.8rem;border-radius:12px;border:none;font-family:inherit;
-  font-size:.85rem;font-weight:700;cursor:pointer}
+/* ── QR ──────────────────────────────────── */
+#qrScreen{gap:1.1rem;background:var(--bg)}
+.qr-title{font-size:1.35rem;font-weight:700;text-align:center}
+.qr-sub{font-size:.82rem;color:var(--muted);text-align:center}
+.qr-box{background:var(--surface);border:1px solid var(--border);border-radius:22px;
+  padding:1.25rem;display:flex;flex-direction:column;align-items:center;gap:.75rem;width:100%;max-width:300px}
+#qrCanvas{border-radius:10px}
+.qr-url{font-size:.62rem;color:var(--muted);word-break:break-all;text-align:center;
+  background:var(--surface2);padding:.4rem .7rem;border-radius:8px;width:100%}
+.qr-actions{display:flex;gap:.75rem;width:100%;max-width:300px}
+.qr-btn{flex:1;padding:.85rem;border-radius:14px;border:none;font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer;transition:transform .1s}
+.qr-btn:active{transform:scale(.96)}
 .btn-new{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
-.btn-gallery{background:var(--green);color:#fff}
+.btn-gallery-qr{background:var(--green);color:#fff}
 
-/* SETTINGS */
-#settings{justify-content:flex-start;padding-top:4.5rem;overflow-y:auto}
-.set-header{position:absolute;top:0;left:0;right:0;padding:1rem 1.5rem;
-  display:flex;align-items:center;gap:.75rem;border-bottom:1px solid var(--border);background:var(--bg);z-index:10}
+/* ── SETTINGS ────────────────────────────── */
+#settings{justify-content:flex-start;padding:0;overflow:hidden}
+.set-header{width:100%;padding:calc(.9rem + var(--safe-top)) 1.25rem .9rem;
+  display:flex;align-items:center;gap:.75rem;border-bottom:1px solid var(--border);background:var(--bg)}
 .back-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);
-  border-radius:8px;width:36px;height:36px;cursor:pointer;font-size:1.1rem;
-  display:flex;align-items:center;justify-content:center}
-.set-title{font-size:1.1rem;font-weight:700}
-.set-body{width:100%;max-width:480px;padding:1.5rem;display:flex;flex-direction:column;gap:1.25rem}
+  border-radius:10px;width:38px;height:38px;cursor:pointer;font-size:1.1rem;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.set-title{font-size:1rem;font-weight:700}
+.set-scroll{width:100%;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:1rem 1.25rem calc(1.5rem + var(--safe-bot))}
+.set-body{display:flex;flex-direction:column;gap:1rem;max-width:480px;margin:0 auto}
 .set-group{background:var(--surface);border-radius:16px;overflow:hidden;border:1px solid var(--border)}
-.set-group-title{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--muted);padding:.6rem 1rem .2rem}
+.set-group-title{font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);padding:.65rem 1rem .2rem}
 .set-row{display:flex;align-items:center;justify-content:space-between;
   padding:.85rem 1rem;border-top:1px solid var(--border);gap:1rem}
 .set-row:first-of-type{border-top:none}
-.set-info{flex:1}
+.set-info{flex:1;min-width:0}
 .set-label{font-size:.88rem;font-weight:500}
-.set-desc{font-size:.73rem;color:var(--muted);margin-top:2px}
-.set-val{font-size:.88rem;font-weight:700;color:var(--accent);min-width:36px;text-align:right}
-.slider-row{flex-direction:column;align-items:stretch;gap:.4rem}
+.set-desc{font-size:.72rem;color:var(--muted);margin-top:2px}
+.set-val{font-size:.88rem;font-weight:700;color:var(--accent);min-width:32px;text-align:right;flex-shrink:0}
+.slider-row{flex-direction:column;align-items:stretch;gap:.3rem}
 .slider-hdr{display:flex;justify-content:space-between;align-items:center}
 input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;
-  border-radius:2px;background:var(--border);outline:none;margin:.4rem 0}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;
-  border-radius:50%;background:var(--accent);cursor:pointer}
+  border-radius:2px;background:var(--border);outline:none;margin:.3rem 0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;
+  border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid #fff}
 select{background:var(--surface2);color:var(--text);border:1px solid var(--border);
-  border-radius:8px;padding:5px 10px;font-family:inherit;font-size:.82rem}
-.toggle{width:44px;height:26px;border-radius:13px;background:var(--border);border:none;
-  cursor:pointer;position:relative;transition:background .2s}
+  border-radius:10px;padding:7px 10px;font-family:inherit;font-size:.82rem;outline:none}
+.toggle{width:48px;height:28px;border-radius:14px;background:var(--border);border:none;
+  cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
 .toggle.on{background:var(--accent)}
-.toggle::after{content:'';position:absolute;width:20px;height:20px;border-radius:50%;
-  background:#fff;top:3px;left:3px;transition:left .2s}
-.toggle.on::after{left:21px}
-.url-box{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;display:flex;flex-direction:column;gap:.4rem}
-.url-label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.toggle::after{content:'';position:absolute;width:22px;height:22px;border-radius:50%;
+  background:#fff;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.toggle.on::after{left:23px}
+.url-box{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:.8rem 1rem;display:flex;flex-direction:column;gap:.35rem}
+.url-label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:600}
 .url-input{background:transparent;border:none;color:var(--text);font-family:inherit;font-size:.82rem;outline:none;width:100%}
-.url-hint{font-size:.72rem;color:var(--muted);line-height:1.5}
+.url-hint{font-size:.7rem;color:var(--muted);line-height:1.6;padding:.25rem 0}
 </style>
 </head>
 <body>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- CUSTOM MODAL -->
+<div id="customModal">
+  <div class="cm-box">
+    <div class="cm-icon" id="cmIcon">⚠️</div>
+    <div class="cm-title" id="cmTitle">Atención</div>
+    <div class="cm-msg" id="cmMsg"></div>
+    <div class="cm-btns">
+      <button class="cm-btn cm-btn-cancel" id="cmCancel" style="display:none" onclick="closeModal()">Cancelar</button>
+      <button class="cm-btn cm-btn-ok" id="cmOk" onclick="closeModal()">Entendido</button>
+    </div>
+  </div>
+</div>
 
 <!-- HOME -->
 <div id="home" class="screen active">
@@ -200,6 +267,7 @@ select{background:var(--surface2);color:var(--text);border:1px solid var(--borde
     <div class="mode-dot"></div>
     <span id="modeBadge">Boomerang · 3s</span>
   </div>
+  <button class="gallery-home-btn" onclick="openGallery()">🖼 Ver galería</button>
 </div>
 
 <!-- EVENTO MODAL -->
@@ -241,7 +309,7 @@ select{background:var(--surface2);color:var(--text);border:1px solid var(--borde
 
 <!-- PREVIEW -->
 <div id="preview" class="screen">
-  <video id="previewVideo" muted playsinline style="width:100%;height:100%;object-fit:cover"></video>
+  <video id="previewVideo" muted playsinline></video>
   <div class="preview-top"><div class="preview-badge" id="previewBadge">▶ Listo</div></div>
   <div class="preview-bottom">
     <div class="upload-status" id="uploadStatus">Listo para subir</div>
@@ -262,7 +330,7 @@ select{background:var(--surface2);color:var(--text);border:1px solid var(--borde
   </div>
   <div class="qr-actions">
     <button class="qr-btn btn-new" onclick="goHome()">🎬 Nuevo</button>
-    <button class="qr-btn btn-gallery" onclick="openGallery()">🖼 Galería</button>
+    <button class="qr-btn btn-gallery-qr" onclick="openGallery()">🖼 Galería</button>
   </div>
 </div>
 
@@ -272,54 +340,56 @@ select{background:var(--surface2);color:var(--text);border:1px solid var(--borde
     <button class="back-btn" onclick="showScreen('home')">←</button>
     <div class="set-title">Ajustes</div>
   </div>
-  <div class="set-body">
-    <div class="set-group">
-      <div class="set-group-title">Apps Script</div>
-      <div class="set-row" style="flex-direction:column;align-items:stretch;gap:.5rem">
-        <div class="url-box">
-          <div class="url-label">URL del Web App</div>
-          <input class="url-input" id="scriptUrlInput" type="url"
-            placeholder="https://script.google.com/macros/s/XXXX/exec"
-            oninput="saveScriptUrl(this.value)">
+  <div class="set-scroll">
+    <div class="set-body">
+      <div class="set-group">
+        <div class="set-group-title">Apps Script</div>
+        <div class="set-row" style="flex-direction:column;align-items:stretch;gap:.5rem">
+          <div class="url-box">
+            <div class="url-label">URL del Web App</div>
+            <input class="url-input" id="scriptUrlInput" type="url"
+              placeholder="https://script.google.com/macros/s/XXXX/exec"
+              oninput="saveScriptUrl(this.value)">
+          </div>
+          <div class="url-hint">Pega la URL de tu Web App.<br><strong>Implementar → Nueva versión → Acceso: Todos</strong></div>
         </div>
-        <div class="url-hint">Pega la URL de tu Web App. <strong>Implementar → Nueva versión → Acceso: Todos</strong></div>
       </div>
-    </div>
-    <div class="set-group">
-      <div class="set-group-title">Grabación</div>
-      <div class="set-row slider-row">
-        <div class="slider-hdr"><div class="set-label">Duración</div><div class="set-val" id="durVal">3s</div></div>
-        <input type="range" id="durSlider" min="2" max="10" value="3" step="1" oninput="updateCfg('dur',this.value)">
+      <div class="set-group">
+        <div class="set-group-title">Grabación</div>
+        <div class="set-row slider-row">
+          <div class="slider-hdr"><div class="set-label">Duración</div><div class="set-val" id="durVal">3s</div></div>
+          <input type="range" id="durSlider" min="2" max="10" value="3" step="1" oninput="updateCfg('dur',this.value)">
+        </div>
+        <div class="set-row slider-row">
+          <div class="slider-hdr"><div class="set-label">Cuenta atrás</div><div class="set-val" id="cdVal">5s</div></div>
+          <input type="range" id="cdSlider" min="3" max="10" value="5" step="1" oninput="updateCfg('cd',this.value)">
+        </div>
       </div>
-      <div class="set-row slider-row">
-        <div class="slider-hdr"><div class="set-label">Cuenta atrás</div><div class="set-val" id="cdVal">5s</div></div>
-        <input type="range" id="cdSlider" min="3" max="10" value="5" step="1" oninput="updateCfg('cd',this.value)">
+      <div class="set-group">
+        <div class="set-group-title">Modo de vídeo</div>
+        <div class="set-row">
+          <div class="set-info"><div class="set-label">Efecto</div><div class="set-desc">Boomerang = ida y vuelta</div></div>
+          <select id="modeSelect" onchange="updateCfg('mode',this.value)">
+            <option value="boomerang">🔄 Boomerang</option>
+            <option value="normal">▶ Normal</option>
+            <option value="reverse">⏪ Reversa</option>
+          </select>
+        </div>
+        <div class="set-row">
+          <div class="set-info"><div class="set-label">Cámara frontal</div><div class="set-desc">Desactiva para usar la trasera</div></div>
+          <button class="toggle on" id="camToggle" onclick="toggleBool('frontCam','camToggle')"></button>
+        </div>
       </div>
-    </div>
-    <div class="set-group">
-      <div class="set-group-title">Modo</div>
-      <div class="set-row">
-        <div class="set-info"><div class="set-label">Efecto</div></div>
-        <select id="modeSelect" onchange="updateCfg('mode',this.value)">
-          <option value="boomerang">🔄 Boomerang</option>
-          <option value="normal">▶ Normal</option>
-          <option value="reverse">⏪ Reversa</option>
-        </select>
-      </div>
-      <div class="set-row">
-        <div class="set-info"><div class="set-label">Cámara frontal</div></div>
-        <button class="toggle on" id="camToggle" onclick="toggleBool('frontCam','camToggle')"></button>
-      </div>
-    </div>
-    <div class="set-group">
-      <div class="set-group-title">Opciones</div>
-      <div class="set-row">
-        <div class="set-info"><div class="set-label">Flash al empezar</div></div>
-        <button class="toggle on" id="flashToggle" onclick="toggleBool('flash','flashToggle')"></button>
-      </div>
-      <div class="set-row">
-        <div class="set-info"><div class="set-label">Espejo cámara frontal</div></div>
-        <button class="toggle on" id="mirrorToggle" onclick="toggleBool('mirror','mirrorToggle')"></button>
+      <div class="set-group">
+        <div class="set-group-title">Extras</div>
+        <div class="set-row">
+          <div class="set-info"><div class="set-label">Flash al empezar</div></div>
+          <button class="toggle on" id="flashToggle" onclick="toggleBool('flash','flashToggle')"></button>
+        </div>
+        <div class="set-row">
+          <div class="set-info"><div class="set-label">Espejo cámara frontal</div></div>
+          <button class="toggle on" id="mirrorToggle" onclick="toggleBool('mirror','mirrorToggle')"></button>
+        </div>
       </div>
     </div>
   </div>
@@ -327,44 +397,57 @@ select{background:var(--surface2);color:var(--text);border:1px solid var(--borde
 
 <script>
 // ── CONFIG ───────────────────────────────────────────────────
-const cfg = { dur:3, cd:5, mode:'boomerang', frontCam:true, flash:true, mirror:true, scriptUrl:'' };
-let currentEvent = null, mediaStream = null, mediaRecorder = null;
-let recordedChunks = [], recInterval = null, finalBlob = null, lastPreviewUrl = '';
-let revInterval = null;
+const cfg = {dur:3,cd:5,mode:'boomerang',frontCam:true,flash:true,mirror:true,scriptUrl:''};
+let currentEvent=null, mediaStream=null, mediaRecorder=null;
+let recordedChunks=[], recInterval=null, finalBlob=null, lastPreviewUrl='', revInterval=null;
 
 (function init(){
   const saved = localStorage.getItem('vmCfg');
-  if (saved) Object.assign(cfg, JSON.parse(saved));
+  if(saved) Object.assign(cfg, JSON.parse(saved));
   document.getElementById('durSlider').value = cfg.dur;
   document.getElementById('cdSlider').value  = cfg.cd;
   document.getElementById('modeSelect').value = cfg.mode;
-  document.getElementById('durVal').textContent = cfg.dur + 's';
-  document.getElementById('cdVal').textContent  = cfg.cd + 's';
+  document.getElementById('durVal').textContent = cfg.dur+'s';
+  document.getElementById('cdVal').textContent  = cfg.cd+'s';
   document.getElementById('camToggle').classList.toggle('on', cfg.frontCam);
   document.getElementById('flashToggle').classList.toggle('on', cfg.flash);
   document.getElementById('mirrorToggle').classList.toggle('on', cfg.mirror);
-  if (cfg.scriptUrl) document.getElementById('scriptUrlInput').value = cfg.scriptUrl;
+  if(cfg.scriptUrl) document.getElementById('scriptUrlInput').value = cfg.scriptUrl;
   const savedEvt = localStorage.getItem('vmEvent');
-  if (savedEvt) setEvent(JSON.parse(savedEvt));
+  if(savedEvt) setEvent(JSON.parse(savedEvt));
   updateModeBadge();
 })();
 
 function saveCfg(){ localStorage.setItem('vmCfg', JSON.stringify(cfg)); }
-function updateCfg(k,v){
-  cfg[k] = k==='mode' ? v : parseInt(v);
-  if(k==='dur') document.getElementById('durVal').textContent = v+'s';
-  if(k==='cd')  document.getElementById('cdVal').textContent  = v+'s';
-  saveCfg(); updateModeBadge();
-}
+function updateCfg(k,v){ cfg[k]=k==='mode'?v:parseInt(v); if(k==='dur') document.getElementById('durVal').textContent=v+'s'; if(k==='cd') document.getElementById('cdVal').textContent=v+'s'; saveCfg(); updateModeBadge(); }
 function toggleBool(k,id){ cfg[k]=!cfg[k]; document.getElementById(id).classList.toggle('on',cfg[k]); saveCfg(); }
 function saveScriptUrl(v){ cfg.scriptUrl=v.trim(); saveCfg(); }
-function updateModeBadge(){
-  const l={boomerang:'Boomerang',normal:'Normal',reverse:'Reversa'};
-  document.getElementById('modeBadge').textContent = l[cfg.mode]+' · '+cfg.dur+'s';
+function updateModeBadge(){ const l={boomerang:'Boomerang',normal:'Normal',reverse:'Reversa'}; document.getElementById('modeBadge').textContent=l[cfg.mode]+' · '+cfg.dur+'s'; }
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+
+// ── TOAST ────────────────────────────────────────────────────
+let toastTimer = null;
+function showToast(msg, type='info'){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show' + (type!=='info' ? ' '+type : '');
+  if(toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ t.classList.remove('show'); }, 3000);
 }
-function showScreen(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+
+// ── MODAL ─────────────────────────────────────────────────────
+let modalCb = null;
+function showModal(icon, title, msg, showCancel=false, cb=null){
+  document.getElementById('cmIcon').textContent = icon;
+  document.getElementById('cmTitle').textContent = title;
+  document.getElementById('cmMsg').textContent = msg;
+  document.getElementById('cmCancel').style.display = showCancel ? 'flex' : 'none';
+  modalCb = cb;
+  document.getElementById('customModal').classList.add('open');
+}
+function closeModal(){
+  document.getElementById('customModal').classList.remove('open');
+  if(modalCb){ modalCb(); modalCb=null; }
 }
 
 // ── EVENTOS ──────────────────────────────────────────────────
@@ -374,34 +457,45 @@ function setEvent(e){ currentEvent=e; document.getElementById('currentEventName'
 
 async function loadEvents(){
   const list = document.getElementById('eventsList');
-  if(!cfg.scriptUrl){ list.innerHTML='<div style="color:var(--muted);font-size:.82rem">Configura la URL del Web App en Ajustes</div>'; return; }
-  list.innerHTML='<div style="color:var(--muted);font-size:.85rem">Cargando...</div>';
+  if(!cfg.scriptUrl){
+    list.innerHTML='<div style="color:var(--muted);font-size:.82rem;padding:.5rem 0">Configura la URL del Web App en Ajustes ⚙️</div>';
+    return;
+  }
+  list.innerHTML='<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Cargando...</div>';
   try{
     const res = await apiFetch({action:'getEvents'});
-    if(!res.events.length){ list.innerHTML='<div style="color:var(--muted);font-size:.82rem">Sin eventos. ¡Crea el primero!</div>'; return; }
+    if(!res.events||!res.events.length){ list.innerHTML='<div style="color:var(--muted);font-size:.82rem;padding:.5rem 0">Sin eventos aún. ¡Crea el primero abajo!</div>'; return; }
     list.innerHTML = res.events.map(e=>`<div class="evt-item" onclick="selectEvent('${e.name.replace(/'/g,"\\'")}')"><span class="evt-item-name">📁 ${e.name}</span><span class="evt-item-count">${e.count} vídeos</span></div>`).join('');
-  }catch(err){ list.innerHTML=`<div style="color:#f87171;font-size:.82rem">Error: ${err.message}</div>`; }
+  }catch(err){
+    list.innerHTML=`<div style="color:#f87171;font-size:.82rem;padding:.5rem 0">❌ Error al cargar: ${err.message}</div>`;
+  }
 }
 function selectEvent(n){ setEvent({name:n}); closeEventModal(); }
 async function createNewEvent(){
   const inp = document.getElementById('newEventInput');
   const name = inp.value.trim();
-  if(!name||!cfg.scriptUrl) return;
-  try{ const res=await apiFetch({action:'createEvent',name}); if(res.ok){ setEvent({name:res.name}); inp.value=''; closeEventModal(); } }
-  catch(e){ alert('Error: '+e.message); }
+  if(!name){ showToast('Escribe un nombre para el evento', 'error'); return; }
+  if(!cfg.scriptUrl){ showModal('⚙️','Falta la URL','Configura la URL del Web App en Ajustes primero'); return; }
+  try{
+    const res = await apiFetch({action:'createEvent',name});
+    if(res.ok){ setEvent({name:res.name}); inp.value=''; closeEventModal(); showToast('Evento "'+res.name+'" creado ✅','success'); }
+    else throw new Error(res.error);
+  }catch(e){ showModal('❌','Error',e.message); }
 }
 
 // ── GRABACIÓN ────────────────────────────────────────────────
 async function startSession(){
   if(!currentEvent){ openEventModal(); return; }
-  if(mediaStream){ mediaStream.getTracks().forEach(t=>t.stop()); mediaStream=null; }
-  // Parar preview boomerang si estaba activo
   stopBoomerang();
+  if(mediaStream){ mediaStream.getTracks().forEach(t=>t.stop()); mediaStream=null; }
   try{
     mediaStream = await navigator.mediaDevices.getUserMedia({
       video:{facingMode:cfg.frontCam?'user':'environment',width:{ideal:1280},height:{ideal:720}},audio:false
     });
-  }catch(e){ alert('No se pudo acceder a la cámara: '+e.message); return; }
+  }catch(e){
+    showModal('📷','Sin acceso a la cámara','Ve a Ajustes del navegador y permite el acceso a la cámara para esta web.');
+    return;
+  }
   runCountdown();
 }
 
@@ -444,13 +538,10 @@ function startRecording(){
 function stopRecording(){
   mediaRecorder.stop(); mediaStream.getTracks().forEach(t=>t.stop());
   showScreen('processing');
-  mediaRecorder.onstop=()=>{
-    finalBlob=new Blob(recordedChunks,{type:'video/webm'});
-    showPreview();
-  };
+  mediaRecorder.onstop=()=>{ finalBlob=new Blob(recordedChunks,{type:'video/webm'}); showPreview(); };
 }
 
-// ── PREVIEW CON BOOMERANG ────────────────────────────────────
+// ── PREVIEW + BOOMERANG ───────────────────────────────────────
 function showPreview(){
   if(lastPreviewUrl) URL.revokeObjectURL(lastPreviewUrl);
   lastPreviewUrl=URL.createObjectURL(finalBlob);
@@ -462,63 +553,49 @@ function showPreview(){
   document.getElementById('uploadStatus').textContent='Listo para subir ☁️';
   document.getElementById('uploadBtn').disabled=false;
   document.getElementById('uploadBtn').textContent='☁️ Subir y QR';
-
   pv.onloadedmetadata=()=>{
     if(cfg.mode==='normal'){ pv.loop=true; pv.play(); return; }
-    if(cfg.mode==='reverse'){ pv.currentTime=0; startReversePlay(pv,()=>startReversePlay(pv,null,true),false); return; }
-    // boomerang
+    if(cfg.mode==='reverse'){ startReversePlay(pv,()=>startReversePlay(pv,null,true),false); return; }
     startBoomerang(pv);
   };
   showScreen('preview');
 }
 
-function stopBoomerang(){
-  if(revInterval){ clearInterval(revInterval); revInterval=null; }
-}
+function stopBoomerang(){ if(revInterval){ clearInterval(revInterval); revInterval=null; } }
 
 function startBoomerang(pv){
   stopBoomerang();
-  pv.playbackRate=1;
-  pv.currentTime=0;
-  pv.play();
-  // Usamos timeupdate en lugar de onended — más fiable en móvil
+  pv.playbackRate=1; pv.currentTime=0; pv.play();
   pv.ontimeupdate=function(){
-    if(pv.duration && pv.currentTime >= pv.duration - 0.15){
-      pv.ontimeupdate=null;
-      pv.pause();
-      startReversePlay(pv, ()=>startBoomerang(pv), false);
+    if(pv.duration && pv.currentTime>=pv.duration-0.15){
+      pv.ontimeupdate=null; pv.pause();
+      startReversePlay(pv,()=>startBoomerang(pv),false);
     }
   };
 }
 
-function startReversePlay(pv, onDone, loop){
+function startReversePlay(pv,onDone,loop){
   stopBoomerang();
   pv.pause();
   let t=pv.duration-0.05;
-  const step=1/30; // 30fps
+  const step=1/30;
   revInterval=setInterval(()=>{
     t-=step;
-    if(t<=0){
-      stopBoomerang();
-      pv.currentTime=0;
-      if(loop) startReversePlay(pv,onDone,true);
-      else if(onDone) onDone();
-      return;
-    }
+    if(t<=0){ stopBoomerang(); pv.currentTime=0; if(loop) startReversePlay(pv,onDone,true); else if(onDone) onDone(); return; }
     try{ pv.currentTime=t; }catch(e){ stopBoomerang(); }
-  },33); // 33ms = 30fps
+  },33);
 }
 
 // ── SUBIDA ───────────────────────────────────────────────────
 async function uploadToDrive(){
-  if(!cfg.scriptUrl){ alert('Configura la URL del Web App en Ajustes'); return; }
-  if(!currentEvent){ alert('Selecciona un evento'); return; }
+  if(!cfg.scriptUrl){ showModal('⚙️','Falta la URL','Configura la URL del Web App en Ajustes primero'); return; }
+  if(!currentEvent){ showModal('📍','Sin evento','Selecciona un evento antes de subir'); return; }
   stopBoomerang();
   const btn=document.getElementById('uploadBtn'), status=document.getElementById('uploadStatus');
-  btn.disabled=true; btn.textContent='⏳ Subiendo...'; status.textContent='Convirtiendo...';
+  btn.disabled=true; btn.textContent='⏳ Subiendo...'; status.textContent='Convirtiendo vídeo...';
   try{
     const b64=await blobToBase64(finalBlob);
-    status.textContent='Enviando a Drive...';
+    status.textContent='Enviando a Google Drive...';
     const ts=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
     const filename=`videomaton_${currentEvent.name.replace(/\s+/g,'_')}_${ts}.webm`;
     const res=await apiFetch({action:'upload',base64:b64,filename,eventName:currentEvent.name,mimeType:'video/webm',mode:cfg.mode});
@@ -526,7 +603,8 @@ async function uploadToDrive(){
     status.textContent='✅ Subido · '+res.sizeMb+' MB';
     showQR(res.previewUrl);
   }catch(err){
-    status.textContent='❌ '+err.message;
+    status.textContent='';
+    showModal('❌','Error al subir',err.message);
     btn.disabled=false; btn.textContent='☁️ Reintentar';
   }
 }
@@ -538,24 +616,20 @@ function showQR(url){
   const canvas=document.getElementById('qrCanvas');
   try{
     const qr=qrcode(0,'M');
-    qr.addData(url);
-    qr.make();
-    const n=qr.getModuleCount();
-    const size=220, cell=Math.floor((size-20)/n), off=Math.floor((size-cell*n)/2);
+    qr.addData(url); qr.make();
+    const n=qr.getModuleCount(), size=220, cell=Math.floor((size-20)/n), off=Math.floor((size-cell*n)/2);
     canvas.width=size; canvas.height=size;
     const ctx=canvas.getContext('2d');
     ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,size,size);
     ctx.fillStyle='#000000';
     for(let r=0;r<n;r++) for(let c=0;c<n;c++) if(qr.isDark(r,c)) ctx.fillRect(off+c*cell,off+r*cell,cell,cell);
-  }catch(e){
-    console.error('QR error:',e);
-  }
+  }catch(e){ console.error('QR error:',e); showToast('No se pudo generar el QR','error'); }
 }
 
 function openGallery(){
-  if(!cfg.scriptUrl||!currentEvent) return;
-  const githubUrl = encodeURIComponent(window.location.href.split('?')[0]);
-  window.open(cfg.scriptUrl+'?page=gallery&event='+encodeURIComponent(currentEvent.name)+'&origin='+githubUrl,'_blank');
+  if(!cfg.scriptUrl||!currentEvent){ showToast('Selecciona un evento primero','error'); return; }
+  const origin=encodeURIComponent(window.location.href.split('?')[0]);
+  window.open(cfg.scriptUrl+'?page=gallery&event='+encodeURIComponent(currentEvent.name)+'&origin='+origin,'_blank');
 }
 function goHome(){ stopBoomerang(); showScreen('home'); }
 

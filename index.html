@@ -278,7 +278,7 @@ select{background:var(--surface2);color:var(--text);border:1px solid var(--borde
   <div class="qr-title">¡Vídeo subido! 🎉</div>
   <div class="qr-sub">Escanea para ver y descargar</div>
   <div class="qr-box">
-    <canvas id="qrCanvas" width="220" height="220"></canvas>
+    <img id="qrCanvas" width="220" height="220" style="border-radius:10px;background:#fff;padding:10px">
     <div class="qr-url" id="qrUrlText">—</div>
   </div>
   <div class="qr-actions">
@@ -371,8 +371,7 @@ select{background:var(--surface2);color:var(--text);border:1px solid var(--borde
   </div>
 </div>
 
-<!-- QR lib -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
 
 <script>
 // ── ESTADO ──────────────────────────────────────────────────
@@ -680,35 +679,16 @@ async function uploadToDrive() {
 function showQR(url) {
   showScreen('qrScreen');
   document.getElementById('qrUrlText').textContent = url;
-  const canvas = document.getElementById('qrCanvas');
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Generar QR con qrcodejs usando un div temporal
-  const tmp = document.createElement('div');
-  tmp.style.display = 'none';
-  document.body.appendChild(tmp);
-
-  new QRCode(tmp, {
-    text: url,
-    width: 200, height: 200,
-    colorDark: '#000000', colorLight: '#ffffff',
-    correctLevel: QRCode.CorrectLevel.M
-  });
-
-  // Copiar la imagen generada al canvas
-  setTimeout(() => {
-    const img = tmp.querySelector('img') || tmp.querySelector('canvas');
-    if (img) {
-      if (img.tagName === 'CANVAS') {
-        ctx.drawImage(img, 10, 10, 200, 200);
-      } else {
-        img.onload = () => ctx.drawImage(img, 10, 10, 200, 200);
-        if (img.complete) ctx.drawImage(img, 10, 10, 200, 200);
-      }
-    }
-    document.body.removeChild(tmp);
-  }, 100);
+  // Usar Google Charts API para generar el QR — simple y fiable
+  const qrImg = document.getElementById('qrCanvas');
+  const encoded = encodeURIComponent(url);
+  qrImg.src = `https://chart.googleapis.com/chart?cht=qr&chs=220x220&chl=${encoded}&choe=UTF-8&chld=M|2`;
+  qrImg.onerror = () => {
+    // Fallback: mostrar la URL como texto grande si falla la imagen
+    qrImg.style.display = 'none';
+    document.getElementById('qrUrlText').style.fontSize = '0.9rem';
+  };
 }
 
 function openGallery() {

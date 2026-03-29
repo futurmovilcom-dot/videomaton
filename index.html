@@ -563,43 +563,38 @@ function showPreview(){
 
 function stopBoomerang(){ if(revInterval){ clearInterval(revInterval); revInterval=null; } }
 
-function startBoomerang(pv){
+function startBoomerang(pv) {
   stopBoomerang();
-  pv.playbackRate = 1; 
-  pv.currentTime = 0; 
+  pv.playbackRate = 1.2; // Un pelín más rápido hace que el boomerang se vea mejor
+  pv.currentTime = 0;
   pv.play();
-  // Usamos un intervalo de alta precisión para detectar el final real
+
+  // Monitoreo constante para evitar el parón del final
   revInterval = setInterval(() => {
-    // Si llegamos casi al final (0.1 segundos antes para evitar el salto del buffer)
-    if (pv.currentTime >= pv.duration - 0.1) {
+    // Si faltan 0.15 segundos para el final, saltamos a la reversa YA
+    if (pv.currentTime >= pv.duration - 0.15) {
       clearInterval(revInterval);
       pv.pause();
-      startReversePlay(pv, () => startBoomerang(pv), false);
+      startReversePlay(pv, () => startBoomerang(pv));
     }
-  }, 30); // 30ms es mucho más preciso que ontimeupdate
+  }, 20); // Revisamos cada 20ms para que no se escape el final
 }
-function startReversePlay(pv, onDone, loop){
+
+function startReversePlay(pv, onDone) {
   stopBoomerang();
-  pv.pause();
-  let t = pv.duration - 0.02; // Empezamos un pelín antes del final absoluto
-  const fps = 30;
-  const step = 1 / fps;
-  
+  let t = pv.duration - 0.05;
+  const step = 1 / 30; // 30 fotogramas por segundo
+
   revInterval = setInterval(() => {
     t -= step;
     if (t <= 0) {
       stopBoomerang();
       pv.currentTime = 0;
-      if (loop) startReversePlay(pv, onDone, true);
-      else if (onDone) onDone();
+      if (onDone) onDone();
       return;
     }
-    try { 
-      pv.currentTime = t; 
-    } catch(e) { 
-      stopBoomerang(); 
-    }
-  }, 1000 / fps);
+    try { pv.currentTime = t; } catch(e) {}
+  }, 25); // Velocidad de retroceso fluida
 }
 
 // ── SUBIDA ───────────────────────────────────────────────────

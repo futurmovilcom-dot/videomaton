@@ -565,25 +565,41 @@ function stopBoomerang(){ if(revInterval){ clearInterval(revInterval); revInterv
 
 function startBoomerang(pv){
   stopBoomerang();
-  pv.playbackRate=1; pv.currentTime=0; pv.play();
-  pv.ontimeupdate=function(){
-    if(pv.duration && pv.currentTime>=pv.duration-0.15){
-      pv.ontimeupdate=null; pv.pause();
-      startReversePlay(pv,()=>startBoomerang(pv),false);
+  pv.playbackRate = 1; 
+  pv.currentTime = 0; 
+  pv.play();
+  // Usamos un intervalo de alta precisión para detectar el final real
+  revInterval = setInterval(() => {
+    // Si llegamos casi al final (0.1 segundos antes para evitar el salto del buffer)
+    if (pv.currentTime >= pv.duration - 0.1) {
+      clearInterval(revInterval);
+      pv.pause();
+      startReversePlay(pv, () => startBoomerang(pv), false);
     }
-  };
+  }, 30); // 30ms es mucho más preciso que ontimeupdate
 }
-
-function startReversePlay(pv,onDone,loop){
+function startReversePlay(pv, onDone, loop){
   stopBoomerang();
   pv.pause();
-  let t=pv.duration-0.05;
-  const step=1/30;
-  revInterval=setInterval(()=>{
-    t-=step;
-    if(t<=0){ stopBoomerang(); pv.currentTime=0; if(loop) startReversePlay(pv,onDone,true); else if(onDone) onDone(); return; }
-    try{ pv.currentTime=t; }catch(e){ stopBoomerang(); }
-  },33);
+  let t = pv.duration - 0.02; // Empezamos un pelín antes del final absoluto
+  const fps = 30;
+  const step = 1 / fps;
+  
+  revInterval = setInterval(() => {
+    t -= step;
+    if (t <= 0) {
+      stopBoomerang();
+      pv.currentTime = 0;
+      if (loop) startReversePlay(pv, onDone, true);
+      else if (onDone) onDone();
+      return;
+    }
+    try { 
+      pv.currentTime = t; 
+    } catch(e) { 
+      stopBoomerang(); 
+    }
+  }, 1000 / fps);
 }
 
 // ── SUBIDA ───────────────────────────────────────────────────

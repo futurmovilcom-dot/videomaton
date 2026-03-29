@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0a0a">
+<title>Videomatón</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0a;--surface:#161616;--surface2:#1e1e1e;
+  --accent:#ff3b3b;--accent2:#ff8c00;--green:#22c55e;
+  --text:#f0f0f0;--muted:#888;--border:#2a2a2a;
+}
+body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--text);
+  height:100dvh;display:flex;flex-direction:column;overflow:hidden;position:fixed;width:100%}
+
+.screen{display:none;flex-direction:column;align-items:center;justify-content:center;
+  width:100%;height:100%;padding:1.5rem}
+.screen.active{display:flex}
+
+/* ── HOME ─────────────────────────────────── */
+#home{gap:1.8rem;background:var(--bg)}
+.logo{font-size:2rem;font-weight:700;letter-spacing:-0.03em;text-align:center}
+.logo span{color:var(--accent)}
+.logo-sub{font-size:0.8rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;text-align:center}
+
+.event-pill{display:flex;align-items:center;gap:8px;background:var(--surface2);
+  border:1px solid var(--border);border-radius:999px;padding:.45rem 1rem;cursor:pointer;
+  font-size:.85rem;transition:background .2s;max-width:90vw}
+.event-pill:hover{background:var(--surface)}
+.event-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0}
+.event-name{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+.event-change{color:var(--muted);font-size:.75rem;flex-shrink:0}
+
+.big-btn{width:170px;height:170px;border-radius:50%;background:var(--accent);border:none;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;
+  gap:8px;position:relative;overflow:visible;
+  box-shadow:0 0 60px rgba(255,59,59,.3),0 0 120px rgba(255,59,59,.1);
+  transition:transform .1s}
+.big-btn::before{content:'';position:absolute;inset:-8px;border-radius:50%;
+  border:2px solid rgba(255,59,59,.3);animation:pulse 2s infinite}
+.big-btn::after{content:'';position:absolute;inset:-18px;border-radius:50%;
+  border:1px solid rgba(255,59,59,.15);animation:pulse 2s .4s infinite}
+@keyframes pulse{0%{transform:scale(1);opacity:1}100%{transform:scale(1.15);opacity:0}}
+.big-btn:active{transform:scale(.95)}
+.btn-icon{font-size:2.4rem}
+.btn-label{font-size:.85rem;font-weight:700;letter-spacing:.06em;color:#fff;text-transform:uppercase}
+.big-btn:disabled{opacity:.4;cursor:not-allowed}
+
+.top-actions{position:absolute;top:1rem;right:1rem;display:flex;gap:.5rem}
+.icon-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  border-radius:50%;width:44px;height:44px;cursor:pointer;font-size:1.1rem;
+  display:flex;align-items:center;justify-content:center;transition:background .2s}
+.icon-btn:hover{background:var(--surface)}
+
+.mode-badge{display:flex;gap:.4rem;align-items:center;background:var(--surface2);
+  border:1px solid var(--border);padding:.4rem .9rem;border-radius:999px;font-size:.78rem;color:var(--muted)}
+.mode-dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+
+/* ── EVENTO MODAL ─────────────────────────── */
+#eventModal{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;
+  display:none;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem}
+#eventModal.open{display:flex}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;
+  width:100%;max-width:400px;padding:1.5rem;display:flex;flex-direction:column;gap:1rem}
+.modal-title{font-size:1.1rem;font-weight:700}
+.modal-input{background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  border-radius:10px;padding:.7rem 1rem;font-family:inherit;font-size:.95rem;width:100%;outline:none}
+.modal-input:focus{border-color:var(--accent)}
+.modal-row{display:flex;gap:.75rem}
+.modal-btn{flex:1;padding:.75rem;border-radius:10px;border:none;font-family:inherit;
+  font-size:.9rem;font-weight:700;cursor:pointer;transition:opacity .2s}
+.modal-btn:active{opacity:.8}
+.btn-cancel{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+.btn-confirm{background:var(--accent);color:#fff}
+.events-list{display:flex;flex-direction:column;gap:.5rem;max-height:180px;overflow-y:auto}
+.evt-item{display:flex;align-items:center;justify-content:space-between;
+  background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+  padding:.6rem 1rem;cursor:pointer;transition:border-color .2s;font-size:.9rem}
+.evt-item:hover{border-color:var(--accent)}
+.evt-item-name{font-weight:500}
+.evt-item-count{color:var(--muted);font-size:.75rem}
+
+/* ── COUNTDOWN ───────────────────────────── */
+#countdown{background:var(--bg);position:relative}
+.count-num{font-size:clamp(140px,38vw,230px);font-weight:700;line-height:1;
+  animation:pop .4s cubic-bezier(.175,.885,.32,1.275)}
+.count-num.go{color:var(--accent)}
+@keyframes pop{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
+.count-hint{position:absolute;bottom:3rem;font-size:.85rem;color:var(--muted);
+  text-align:center;padding:0 2rem}
+.count-hint strong{color:var(--accent2)}
+.flash-overlay{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+
+/* ── RECORDING ───────────────────────────── */
+#recording{background:#000;padding:0;position:relative}
+#videoPreview{width:100%;height:100%;object-fit:cover}
+.rec-hud{position:absolute;top:0;left:0;right:0;padding:1rem 1.5rem;
+  display:flex;align-items:center;justify-content:space-between;
+  background:linear-gradient(to bottom,rgba(0,0,0,.7),transparent)}
+.rec-badge{display:flex;align-items:center;gap:8px;background:rgba(255,59,59,.9);
+  color:#fff;padding:5px 12px;border-radius:999px;font-size:.72rem;font-weight:700;letter-spacing:.1em}
+.rec-dot{width:7px;height:7px;border-radius:50%;background:#fff;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.rec-timer{font-size:1.35rem;font-weight:700;font-variant-numeric:tabular-nums}
+.rec-bar-wrap{position:absolute;bottom:0;left:0;right:0;height:4px;background:rgba(255,255,255,.15)}
+.rec-bar{height:100%;background:var(--accent);transition:width .1s linear;width:0%}
+
+/* ── PROCESSING ──────────────────────────── */
+#processing{background:var(--bg);gap:1.5rem}
+.spinner{width:52px;height:52px;border:3px solid var(--border);border-top-color:var(--accent);
+  border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.proc-title{font-size:1.15rem;font-weight:700}
+.proc-sub{font-size:.85rem;color:var(--muted)}
+
+/* ── PREVIEW GRABADO ─────────────────────── */
+#preview{background:#000;padding:0;position:relative}
+#previewVideo{width:100%;height:100%;object-fit:cover}
+.preview-top{position:absolute;top:0;left:0;right:0;padding:1rem 1.5rem;
+  background:linear-gradient(to bottom,rgba(0,0,0,.7),transparent);
+  display:flex;justify-content:center}
+.preview-badge{background:rgba(0,0,0,.6);color:#fff;padding:5px 16px;border-radius:999px;
+  font-size:.8rem;font-weight:500;border:1px solid rgba(255,255,255,.15);white-space:nowrap}
+.preview-bottom{position:absolute;bottom:0;left:0;right:0;padding:1.5rem;
+  background:linear-gradient(to top,rgba(0,0,0,.9),transparent);
+  display:flex;flex-direction:column;gap:.75rem}
+.act-row{display:flex;gap:.75rem}
+.act-btn{flex:1;padding:.85rem;border:none;border-radius:12px;font-family:inherit;
+  font-size:.88rem;font-weight:700;cursor:pointer;transition:transform .1s;
+  display:flex;align-items:center;justify-content:center;gap:8px}
+.act-btn:active{transform:scale(.97)}
+.btn-repeat{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-upload{background:var(--accent);color:#fff}
+.btn-upload:disabled{opacity:.5;cursor:not-allowed}
+.upload-status{background:rgba(0,0,0,.5);border-radius:10px;padding:.6rem 1rem;
+  font-size:.8rem;color:var(--muted);text-align:center;border:1px solid var(--border)}
+
+/* ── QR ──────────────────────────────────── */
+#qrScreen{background:var(--bg);gap:1.5rem;position:relative}
+.qr-title{font-size:1.3rem;font-weight:700;text-align:center}
+.qr-sub{font-size:.85rem;color:var(--muted);text-align:center}
+.qr-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;
+  padding:1.5rem;display:flex;flex-direction:column;align-items:center;gap:1rem}
+#qrCanvas{border-radius:10px;background:#fff;padding:10px}
+.qr-url{font-size:.7rem;color:var(--muted);word-break:break-all;text-align:center;
+  max-width:280px;background:var(--surface2);padding:.5rem .75rem;border-radius:8px}
+.qr-actions{display:flex;gap:.75rem;width:100%;max-width:340px}
+.qr-btn{flex:1;padding:.8rem;border-radius:12px;border:none;font-family:inherit;
+  font-size:.85rem;font-weight:700;cursor:pointer;transition:transform .1s}
+.qr-btn:active{transform:scale(.97)}
+.btn-new{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-gallery{background:var(--green);color:#fff}
+
+/* ── SETTINGS ────────────────────────────── */
+#settings{justify-content:flex-start;padding-top:4.5rem;overflow-y:auto;background:var(--bg)}
+.set-header{position:absolute;top:0;left:0;right:0;padding:1rem 1.5rem;
+  display:flex;align-items:center;gap:.75rem;border-bottom:1px solid var(--border);
+  background:var(--bg);z-index:10}
+.back-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  border-radius:8px;width:36px;height:36px;cursor:pointer;font-size:1.1rem;
+  display:flex;align-items:center;justify-content:center}
+.set-title{font-size:1.1rem;font-weight:700}
+.set-body{width:100%;max-width:480px;padding:1.5rem;display:flex;flex-direction:column;gap:1.25rem}
+.set-group{background:var(--surface);border-radius:16px;overflow:hidden;border:1px solid var(--border)}
+.set-group-title{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);padding:.6rem 1rem .2rem}
+.set-row{display:flex;align-items:center;justify-content:space-between;
+  padding:.85rem 1rem;border-top:1px solid var(--border);gap:1rem}
+.set-row:first-of-type{border-top:none}
+.set-info{flex:1}
+.set-label{font-size:.88rem;font-weight:500}
+.set-desc{font-size:.73rem;color:var(--muted);margin-top:2px}
+.set-val{font-size:.88rem;font-weight:700;color:var(--accent);min-width:36px;text-align:right}
+.slider-row{flex-direction:column;align-items:stretch;gap:.4rem}
+.slider-hdr{display:flex;justify-content:space-between;align-items:center}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;
+  border-radius:2px;background:var(--border);outline:none;margin:.4rem 0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;
+  border-radius:50%;background:var(--accent);cursor:pointer}
+select{background:var(--surface2);color:var(--text);border:1px solid var(--border);
+  border-radius:8px;padding:5px 10px;font-family:inherit;font-size:.82rem}
+.toggle{width:44px;height:26px;border-radius:13px;background:var(--border);border:none;
+  cursor:pointer;position:relative;transition:background .2s}
+.toggle.on{background:var(--accent)}
+.toggle::after{content:'';position:absolute;width:20px;height:20px;border-radius:50%;
+  background:#fff;top:3px;left:3px;transition:left .2s}
+.toggle.on::after{left:21px}
+.script-url-box{background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+  padding:.75rem 1rem;display:flex;flex-direction:column;gap:.4rem}
+.script-url-label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.script-url-input{background:transparent;border:none;color:var(--text);font-family:inherit;
+  font-size:.82rem;outline:none;width:100%;word-break:break-all}
+.script-url-hint{font-size:.72rem;color:var(--muted);line-height:1.5}
+</style>
+</head>
+<body>
+
+<!-- ── HOME ──────────────────────────────── -->
+<div id="home" class="screen active">
+  <div class="top-actions">
+    <button class="icon-btn" onclick="showScreen('settings')" title="Ajustes">⚙️</button>
+  </div>
+  <div>
+    <div class="logo">Video<span>matón</span></div>
+    <div class="logo-sub">Tu fotomatón privado</div>
+  </div>
+  <button class="event-pill" onclick="openEventModal()">
+    <div class="event-dot"></div>
+    <span class="event-name" id="currentEventName">Sin evento</span>
+    <span class="event-change">cambiar ›</span>
+  </button>
+  <button class="big-btn" id="recBtn" onclick="startSession()" disabled>
+    <div class="btn-icon">🎬</div>
+    <div class="btn-label">Grabar</div>
+  </button>
+  <div class="mode-badge">
+    <div class="mode-dot"></div>
+    <span id="modeBadge">Boomerang · 3s</span>
+  </div>
+</div>
+
+<!-- ── EVENTO MODAL ───────────────────────── -->
+<div id="eventModal">
+  <div class="modal-box">
+    <div class="modal-title">📍 Selecciona o crea evento</div>
+    <div class="events-list" id="eventsList"><div style="color:var(--muted);font-size:.85rem">Cargando...</div></div>
+    <input class="modal-input" id="newEventInput" type="text" placeholder="Nombre del nuevo evento..." maxlength="60">
+    <div class="modal-row">
+      <button class="modal-btn btn-cancel" onclick="closeEventModal()">Cancelar</button>
+      <button class="modal-btn btn-confirm" onclick="createNewEvent()">+ Crear</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── COUNTDOWN ──────────────────────────── -->
+<div id="countdown" class="screen">
+  <div class="count-num" id="countNum">5</div>
+  <div class="count-hint">⚡ <strong>Dale al mando ahora</strong><br>para activar el videomatón</div>
+  <div class="flash-overlay" id="flashOverlay"></div>
+</div>
+
+<!-- ── RECORDING ─────────────────────────── -->
+<div id="recording" class="screen">
+  <video id="videoPreview" autoplay muted playsinline></video>
+  <div class="rec-hud">
+    <div class="rec-badge"><div class="rec-dot"></div>REC</div>
+    <div class="rec-timer" id="recTimer">0.0s</div>
+  </div>
+  <div class="rec-bar-wrap"><div class="rec-bar" id="recBar"></div></div>
+</div>
+
+<!-- ── PROCESSING ────────────────────────── -->
+<div id="processing" class="screen">
+  <div class="spinner"></div>
+  <div class="proc-title" id="procTitle">Creando boomerang...</div>
+  <div class="proc-sub" id="procSub">Procesando frames</div>
+</div>
+
+<!-- ── PREVIEW ───────────────────────────── -->
+<div id="preview" class="screen">
+  <video id="previewVideo" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:cover"></video>
+  <div class="preview-top"><div class="preview-badge" id="previewBadge">✨ Boomerang listo</div></div>
+  <div class="preview-bottom">
+    <div class="upload-status" id="uploadStatus">Listo para subir a Drive</div>
+    <div class="act-row">
+      <button class="act-btn btn-repeat" onclick="startSession()">🔁 Repetir</button>
+      <button class="act-btn btn-upload" id="uploadBtn" onclick="uploadToDrive()">☁️ Subir y QR</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── QR SCREEN ─────────────────────────── -->
+<div id="qrScreen" class="screen">
+  <div class="qr-title">¡Vídeo subido! 🎉</div>
+  <div class="qr-sub">Escanea para ver y descargar</div>
+  <div class="qr-box">
+    <canvas id="qrCanvas" width="220" height="220"></canvas>
+    <div class="qr-url" id="qrUrlText">—</div>
+  </div>
+  <div class="qr-actions">
+    <button class="qr-btn btn-new" onclick="goHome()">🎬 Nuevo</button>
+    <button class="qr-btn btn-gallery" onclick="openGallery()">🖼 Galería</button>
+  </div>
+</div>
+
+<!-- ── SETTINGS ──────────────────────────── -->
+<div id="settings" class="screen">
+  <div class="set-header">
+    <button class="back-btn" onclick="showScreen('home')">←</button>
+    <div class="set-title">Ajustes</div>
+  </div>
+  <div class="set-body">
+
+    <div class="set-group">
+      <div class="set-group-title">Apps Script</div>
+      <div class="set-row" style="flex-direction:column;align-items:stretch;gap:.5rem">
+        <div class="script-url-box">
+          <div class="script-url-label">URL del Web App</div>
+          <input class="script-url-input" id="scriptUrlInput" type="url"
+            placeholder="https://script.google.com/macros/s/XXXX/exec"
+            oninput="saveScriptUrl(this.value)">
+        </div>
+        <div class="script-url-hint">
+          Pega aquí la URL de tu Web App desplegada en Apps Script.<br>
+          <strong>Desplegar → Nueva versión → Acceso: Todos</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="set-group">
+      <div class="set-group-title">Grabación</div>
+      <div class="set-row slider-row">
+        <div class="slider-hdr">
+          <div class="set-label">Duración de grabación</div>
+          <div class="set-val" id="durVal">3s</div>
+        </div>
+        <input type="range" id="durSlider" min="2" max="10" value="3" step="1"
+          oninput="updateCfg('dur',this.value)">
+      </div>
+      <div class="set-row slider-row">
+        <div class="slider-hdr">
+          <div class="set-label">Cuenta atrás</div>
+          <div class="set-val" id="cdVal">5s</div>
+        </div>
+        <input type="range" id="cdSlider" min="3" max="10" value="5" step="1"
+          oninput="updateCfg('cd',this.value)">
+      </div>
+    </div>
+
+    <div class="set-group">
+      <div class="set-group-title">Modo de vídeo</div>
+      <div class="set-row">
+        <div class="set-info">
+          <div class="set-label">Efecto</div>
+          <div class="set-desc">Boomerang = ida y vuelta / Normal / Reversa</div>
+        </div>
+        <select id="modeSelect" onchange="updateCfg('mode',this.value)">
+          <option value="boomerang">🔄 Boomerang</option>
+          <option value="normal">▶ Normal</option>
+          <option value="reverse">⏪ Reversa</option>
+        </select>
+      </div>
+      <div class="set-row">
+        <div class="set-info">
+          <div class="set-label">Cámara frontal</div>
+          <div class="set-desc">Desactiva para usar la cámara trasera</div>
+        </div>
+        <button class="toggle on" id="camToggle" onclick="toggleBool('frontCam','camToggle')"></button>
+      </div>
+    </div>
+
+    <div class="set-group">
+      <div class="set-group-title">Opciones</div>
+      <div class="set-row">
+        <div class="set-info"><div class="set-label">Flash al empezar</div></div>
+        <button class="toggle on" id="flashToggle" onclick="toggleBool('flash','flashToggle')"></button>
+      </div>
+      <div class="set-row">
+        <div class="set-info">
+          <div class="set-label">Espejo en preview</div>
+          <div class="set-desc">Invierte horizontalmente la cámara frontal</div>
+        </div>
+        <button class="toggle on" id="mirrorToggle" onclick="toggleBool('mirror','mirrorToggle')"></button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- QR lib -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<script>
+// ── ESTADO ──────────────────────────────────────────────────
+const cfg = {
+  dur: 3, cd: 5, mode: 'boomerang',
+  frontCam: true, flash: true, mirror: true,
+  scriptUrl: '',
+};
+let currentEvent = null;
+let mediaStream = null, mediaRecorder = null;
+let recordedChunks = [], recInterval = null, finalBlob = null;
+let lastPreviewUrl = '';
+
+// ── INIT ────────────────────────────────────────────────────
+(function init() {
+  const saved = localStorage.getItem('vmCfg');
+  if (saved) Object.assign(cfg, JSON.parse(saved));
+
+  document.getElementById('durSlider').value = cfg.dur;
+  document.getElementById('cdSlider').value  = cfg.cd;
+  document.getElementById('modeSelect').value = cfg.mode;
+  document.getElementById('durVal').textContent = cfg.dur + 's';
+  document.getElementById('cdVal').textContent  = cfg.cd + 's';
+  document.getElementById('camToggle').classList.toggle('on', cfg.frontCam);
+  document.getElementById('flashToggle').classList.toggle('on', cfg.flash);
+  document.getElementById('mirrorToggle').classList.toggle('on', cfg.mirror);
+  if (cfg.scriptUrl) document.getElementById('scriptUrlInput').value = cfg.scriptUrl;
+
+  const savedEvent = localStorage.getItem('vmEvent');
+  if (savedEvent) setEvent(JSON.parse(savedEvent));
+  updateModeBadge();
+})();
+
+function saveCfg() { localStorage.setItem('vmCfg', JSON.stringify(cfg)); }
+
+function updateCfg(key, val) {
+  cfg[key] = (key === 'mode') ? val : parseInt(val);
+  if (key === 'dur') document.getElementById('durVal').textContent = val + 's';
+  if (key === 'cd')  document.getElementById('cdVal').textContent  = val + 's';
+  saveCfg(); updateModeBadge();
+}
+
+function toggleBool(key, id) {
+  cfg[key] = !cfg[key];
+  document.getElementById(id).classList.toggle('on', cfg[key]);
+  saveCfg();
+}
+
+function saveScriptUrl(val) { cfg.scriptUrl = val.trim(); saveCfg(); }
+
+function updateModeBadge() {
+  const labels = { boomerang:'Boomerang', normal:'Normal', reverse:'Reversa' };
+  document.getElementById('modeBadge').textContent = `${labels[cfg.mode]} · ${cfg.dur}s`;
+}
+
+// ── PANTALLAS ────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── EVENTOS ──────────────────────────────────────────────────
+function openEventModal() {
+  document.getElementById('eventModal').classList.add('open');
+  loadEvents();
+}
+function closeEventModal() {
+  document.getElementById('eventModal').classList.remove('open');
+}
+
+async function loadEvents() {
+  const list = document.getElementById('eventsList');
+  list.innerHTML = '<div style="color:var(--muted);font-size:.85rem">Cargando...</div>';
+  if (!cfg.scriptUrl) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:.82rem">Configura primero la URL del Web App en Ajustes</div>';
+    return;
+  }
+  try {
+    const res = await apiFetch({ action: 'getEvents' });
+    if (!res.ok) throw new Error(res.error);
+    if (!res.events.length) {
+      list.innerHTML = '<div style="color:var(--muted);font-size:.82rem">No hay eventos todavía. ¡Crea el primero!</div>';
+      return;
+    }
+    list.innerHTML = res.events.map(e => `
+      <div class="evt-item" onclick="selectEvent('${e.name.replace(/'/g,"\\'")}')">
+        <span class="evt-item-name">📁 ${e.name}</span>
+        <span class="evt-item-count">${e.count} vídeos</span>
+      </div>`).join('');
+  } catch(err) {
+    list.innerHTML = `<div style="color:#f87171;font-size:.82rem">Error: ${err.message}</div>`;
+  }
+}
+
+function selectEvent(name) {
+  setEvent({ name });
+  closeEventModal();
+}
+
+function setEvent(evt) {
+  currentEvent = evt;
+  document.getElementById('currentEventName').textContent = evt.name;
+  document.getElementById('recBtn').disabled = false;
+  localStorage.setItem('vmEvent', JSON.stringify(evt));
+}
+
+async function createNewEvent() {
+  const input = document.getElementById('newEventInput');
+  const name = input.value.trim();
+  if (!name) return;
+  if (!cfg.scriptUrl) { alert('Configura primero la URL del Web App en Ajustes'); return; }
+  try {
+    const res = await apiFetch({ action: 'createEvent', name });
+    if (!res.ok) throw new Error(res.error);
+    setEvent({ name: res.name });
+    input.value = '';
+    closeEventModal();
+  } catch(err) {
+    alert('Error al crear evento: ' + err.message);
+  }
+}
+
+// ── SESIÓN DE GRABACIÓN ──────────────────────────────────────
+async function startSession() {
+  if (!currentEvent) { openEventModal(); return; }
+  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: cfg.frontCam ? 'user' : 'environment',
+               width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false
+    });
+  } catch(e) { alert('No se pudo acceder a la cámara: ' + e.message); return; }
+  runCountdown();
+}
+
+function runCountdown() {
+  showScreen('countdown');
+  let n = cfg.cd;
+  const el = document.getElementById('countNum');
+  const flash = document.getElementById('flashOverlay');
+  el.classList.remove('go');
+  el.textContent = n;
+  const tick = setInterval(() => {
+    n--;
+    if (n <= 0) {
+      clearInterval(tick);
+      el.textContent = '¡YA!';
+      el.classList.add('go');
+      if (cfg.flash) {
+        flash.style.transition = 'opacity .05s'; flash.style.opacity = '1';
+        setTimeout(() => { flash.style.transition = 'opacity .4s'; flash.style.opacity = '0'; }, 80);
+      }
+      setTimeout(() => startRecording(), 300);
+    } else {
+      el.style.animation = 'none'; el.offsetHeight;
+      el.style.animation = 'pop .4s cubic-bezier(.175,.885,.32,1.275)';
+      el.textContent = n;
+    }
+  }, 1000);
+}
+
+function startRecording() {
+  showScreen('recording');
+  const vid = document.getElementById('videoPreview');
+  vid.srcObject = mediaStream;
+  vid.style.transform = (cfg.frontCam && cfg.mirror) ? 'scaleX(-1)' : 'none';
+  recordedChunks = [];
+  const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+    ? 'video/webm;codecs=vp9' : 'video/webm';
+  mediaRecorder = new MediaRecorder(mediaStream, { mimeType: mime });
+  mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+  mediaRecorder.start(100);
+  const totalMs = cfg.dur * 1000;
+  const bar = document.getElementById('recBar');
+  const timer = document.getElementById('recTimer');
+  const start = Date.now();
+  recInterval = setInterval(() => {
+    const el = Date.now() - start;
+    bar.style.width = Math.min(100, el / totalMs * 100) + '%';
+    timer.textContent = (el / 1000).toFixed(1) + 's';
+    if (el >= totalMs) { clearInterval(recInterval); stopRecording(); }
+  }, 50);
+}
+
+function stopRecording() {
+  mediaRecorder.stop();
+  mediaStream.getTracks().forEach(t => t.stop());
+  showScreen('processing');
+  mediaRecorder.onstop = () => processVideo();
+}
+
+// ── PROCESADO ───────────────────────────────────────────────
+async function processVideo() {
+  const rawBlob = new Blob(recordedChunks, { type: 'video/webm' });
+  if (cfg.mode === 'normal') { finalBlob = rawBlob; showPreview(); return; }
+  document.getElementById('procTitle').textContent =
+    cfg.mode === 'boomerang' ? 'Creando boomerang...' : 'Invirtiendo vídeo...';
+  try { finalBlob = await processFrames(rawBlob); }
+  catch(e) { console.warn(e); finalBlob = rawBlob; }
+  showPreview();
+}
+
+async function processFrames(blob) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const vid = document.createElement('video');
+    vid.src = url; vid.muted = true; vid.preload = 'auto';
+    vid.onloadedmetadata = async () => {
+      // Resolución reducida y pocos frames para no colapsar el móvil
+      const MAX_W = 480;
+      const srcW = vid.videoWidth || 640, srcH = vid.videoHeight || 480;
+      const scale = Math.min(1, MAX_W / srcW);
+      const W = Math.floor(srcW * scale), H = Math.floor(srcH * scale);
+      const fps = 10;
+      const MAX_FRAMES = 40;
+      const total = Math.min(MAX_FRAMES, Math.floor(vid.duration * fps));
+      document.getElementById('procSub').textContent = `Capturando ${total} frames...`;
+      const canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      const frames = []; let f = 0;
+      const captureNext = () => {
+        if (f >= total) {
+          document.getElementById('procSub').textContent = 'Montando vídeo...';
+          buildOutput(frames, canvas, ctx, resolve);
+          return;
+        }
+        document.getElementById('procSub').textContent = `Frame ${f + 1} de ${total}...`;
+        vid.currentTime = f / fps; f++;
+      };
+      vid.onseeked = () => {
+        ctx.drawImage(vid, 0, 0, W, H);
+        frames.push(ctx.getImageData(0, 0, W, H));
+        captureNext();
+      };
+      captureNext();
+    };
+    vid.onerror = reject; vid.load();
+  });
+}
+
+function buildOutput(frames, canvas, ctx, resolve) {
+  const seq = cfg.mode === 'boomerang'
+    ? [...frames, ...[...frames].reverse()]
+    : [...frames].reverse();
+  const stream = canvas.captureStream(24);
+  const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
+  const mr = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 4000000 });
+  const chunks = [];
+  mr.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+  mr.onstop = () => resolve(new Blob(chunks, { type: 'video/webm' }));
+  mr.start();
+  let i = 0;
+  const draw = () => { if (i >= seq.length) { mr.stop(); return; } ctx.putImageData(seq[i++], 0, 0); requestAnimationFrame(draw); };
+  draw();
+}
+
+function showPreview() {
+  if (lastPreviewUrl) URL.revokeObjectURL(lastPreviewUrl);
+  lastPreviewUrl = URL.createObjectURL(finalBlob);
+  const pv = document.getElementById('previewVideo');
+  pv.src = lastPreviewUrl; pv.play();
+  pv.style.transform = (cfg.frontCam && cfg.mirror) ? 'scaleX(-1)' : 'none';
+  const labels = { boomerang:'🔄 Boomerang listo', normal:'▶ Vídeo listo', reverse:'⏪ Reversa lista' };
+  document.getElementById('previewBadge').textContent = labels[cfg.mode];
+  document.getElementById('uploadStatus').textContent = 'Listo para subir a Drive ☁️';
+  document.getElementById('uploadBtn').disabled = false;
+  document.getElementById('uploadBtn').textContent = '☁️ Subir y QR';
+  showScreen('preview');
+}
+
+// ── SUBIDA A DRIVE ───────────────────────────────────────────
+async function uploadToDrive() {
+  if (!cfg.scriptUrl) { alert('Configura la URL del Web App en Ajustes primero'); return; }
+  if (!currentEvent) { alert('Selecciona un evento primero'); return; }
+  const btn = document.getElementById('uploadBtn');
+  const status = document.getElementById('uploadStatus');
+  btn.disabled = true;
+  btn.textContent = '⏳ Subiendo...';
+  status.textContent = 'Convirtiendo a base64...';
+  try {
+    const b64 = await blobToBase64(finalBlob);
+    status.textContent = 'Enviando a Google Drive...';
+    const ts = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+    const filename = `videomaton_${currentEvent.name.replace(/\s+/g,'_')}_${ts}.webm`;
+    const res = await apiFetch({
+      action: 'upload',
+      base64: b64,
+      filename,
+      eventName: currentEvent.name,
+      mimeType: 'video/webm',
+    });
+    if (!res.ok) throw new Error(res.error);
+    status.textContent = `✅ Subido · ${res.sizeMb} MB`;
+    showQR(res.previewUrl);
+  } catch(err) {
+    status.textContent = '❌ Error: ' + err.message;
+    btn.disabled = false;
+    btn.textContent = '☁️ Reintentar';
+  }
+}
+
+// ── QR ────────────────────────────────────────────────────────
+function showQR(url) {
+  showScreen('qrScreen');
+  document.getElementById('qrUrlText').textContent = url;
+  const canvas = document.getElementById('qrCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Generar QR con qrcodejs usando un div temporal
+  const tmp = document.createElement('div');
+  tmp.style.display = 'none';
+  document.body.appendChild(tmp);
+
+  new QRCode(tmp, {
+    text: url,
+    width: 200, height: 200,
+    colorDark: '#000000', colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
+
+  // Copiar la imagen generada al canvas
+  setTimeout(() => {
+    const img = tmp.querySelector('img') || tmp.querySelector('canvas');
+    if (img) {
+      if (img.tagName === 'CANVAS') {
+        ctx.drawImage(img, 10, 10, 200, 200);
+      } else {
+        img.onload = () => ctx.drawImage(img, 10, 10, 200, 200);
+        if (img.complete) ctx.drawImage(img, 10, 10, 200, 200);
+      }
+    }
+    document.body.removeChild(tmp);
+  }, 100);
+}
+
+function openGallery() {
+  if (!cfg.scriptUrl || !currentEvent) return;
+  const url = `${cfg.scriptUrl}?page=gallery&event=${encodeURIComponent(currentEvent.name)}`;
+  window.open(url, '_blank');
+}
+
+function goHome() { showScreen('home'); }
+
+// ── API HELPER ───────────────────────────────────────────────
+async function apiFetch(body) {
+  const res = await fetch(cfg.scriptUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(body),
+  });
+  return res.json();
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result.split(',')[1]);
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
+}
+</script>
+</body>
+</html>

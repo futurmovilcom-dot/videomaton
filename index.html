@@ -629,7 +629,7 @@ function showQR(url){
 function openGallery(){
   if(!cfg.scriptUrl||!currentEvent){ showToast('Selecciona un evento primero','error'); return; }
   const origin=encodeURIComponent(window.location.href.split('?')[0]);
-  window.open(cfg.scriptUrl+'?page=gallery&event='+encodeURIComponent(currentEvent.name)+'&origin='+origin,'_blank');
+  location.href=cfg.scriptUrl+'?page=gallery&event='+encodeURIComponent(currentEvent.name)+'&origin='+origin;
 }
 function goHome(){ stopBoomerang(); showScreen('home'); }
 
